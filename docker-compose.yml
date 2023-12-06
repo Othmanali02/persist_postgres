@@ -1,0 +1,29 @@
+version: '3.4'
+
+services: 
+    postgres:
+        image: postgres
+        restart: unless-stopped
+        environment: 
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: persist_postgres
+        volumes:
+        #    - ./data:/var/lib/postgresql/data
+            - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+        ports:
+            - 5432:5432
+        container_name: persist_postgres
+
+    adminer:
+        image: adminer
+        restart: unless-stopped
+        environment:
+            ADMINER_DEFAULT_SERVER: postgres
+            ADMINER_DESIGN: dracula
+        ports:
+            - 8080:8080
+        container_name: adminer
+        
+#volumes:
+#    persist_postgres:
