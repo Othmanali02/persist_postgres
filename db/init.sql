@@ -4,18 +4,36 @@
 -- Core Brapi Module
 CREATE TYPE program_type AS ENUM ('STANDARD', 'PROJECT');
 
+CREATE TABLE CommmonCropName (
+    cropDbId varchar(50) NOT NULL PRIMARY KEY,
+    commonCropName varchar(50) UNIQUE NOT NULL
+);
+
 CREATE TABLE Country (
     countryCode varchar(3) NOT NULL PRIMARY KEY,
     countryName varchar(50) NOT NULL
 );
 
+CREATE TABLE Address (
+    addressDbId varchar(50) NOT NULL PRIMARY KEY,
+    buildingFloor varchar(50) NULL,
+    buildingName varchar(50) NULL
+    buildingNumber integer NULL,
+    streetName varchar(50) NOT NULL,
+    streetNumber integer NOT NULL,
+    postalCode varchar(50) NOT NULL,
+    cityLocality varchar(50) NOT NULL,
+    stateProvince varchar(50) NOT NULL,
+    countryCode varchar(3) NOT NULL REFERENCES Country (countryCode)
+);
+
 CREATE TABLE Institute (
     instituteDbId varchar(50) NOT NULL PRIMARY KEY,
     instituteName varchar(50) NOT NULL,
-    instituteAddress varchar(50) NULL, -- This is a composite, break into smaller fields
     instituteURL text NULL,
     instituteType varchar(50) NULL,
-    instituteROR varchar(50) NULL
+    instituteROR varchar(50) NULL,
+    addressDbId varchar(50) NOT NULL REFERENCES Address (addressDbId)
 );
 
 CREATE TABLE InstituteAlias (
@@ -24,33 +42,20 @@ CREATE TABLE InstituteAlias (
     PRIMARY KEY (instituteDbId, instituteAlias)
 );
 
-CREATE TABLE CommmonCropName (
-    cropDbId varchar(50) NOT NULL PRIMARY KEY,
-    commonCropName varchar(50) UNIQUE NOT NULL
-);
-
 CREATE TABLE Person (
     personDbId varchar(50) NOT NULL PRIMARY KEY,
-    additionalInfo json NULL, -- move to separate table
     description text NULL,
     emailAddress varchar(254) NULL,
-    externalReferences json[] NULL, -- move to PersonExtRef table
     firstName varchar(50) NULL,
     middleName varchar(50) NULL,
     lastName varchar(50) NULL,
-    mailingAddress varchar(255) NULL,
     phoneNumber varchar(50) NULL,
     orcid varchar(50) NULL, -- set up regex to validate this in Django
     roleType varchar(50) NULL, -- MIAPPE V1.1 (DM-34 Person role)
-    instituteDbId varchar(50) NOT NULL REFERENCES Institute (instituteDbId) ON DELETE CASCADE,
     userID varchar(50) NULL -- should this be public or private?
-);
-
-CREATE TABLE PersonExtRef (
-    personDbId varchar(50) NOT NULL REFERENCES Person (personDbId) ON DELETE CASCADE,
-    referenceId varchar(50) UNIQUE NOT NULL,
-    referenceSource varchar(50) NOT NULL,
-    PRIMARY KEY (personDbId, referenceId)
+    programDbId varchar(50) NULL REFERENCES Program (programDbId),
+    instituteDbId varchar(50) NOT NULL REFERENCES Institute (instituteDbId) ON DELETE CASCADE,
+    addressDbId varchar(255) NOT NULL REFERENCES Address (addressDbId),
 );
 
 CREATE TABLE Season (
@@ -66,7 +71,7 @@ CREATE TABLE Location (
     additionalInfo json NULL, -- moved to separate table
     coordinateDescription text NULL,
     coordinateUncertainty varchar(255) NULL,
-    coordinates json NULL, -- GeoJSON move to MONGODB?
+    coordinates json NULL, -- GeoJSON move to MONGODB? or move to other table
     countryCode varchar(3) NOT NULL REFERENCES Country (countryCode) ON DELETE CASCADE,
     countryName varchar(50) NULL, -- moved to Country Table 
     documentationURL text NULL,
@@ -82,13 +87,6 @@ CREATE TABLE Location (
     siteStatus varchar(50) NULL, -- description of accessibility of the location
     slope varchar(50) NULL,
     topography varchar(50) NULL
-);
-
-CREATE TABLE LocationExtRef (
-    locationDbId varchar(50) NOT NULL REFERENCES Location (locationDbId) ON DELETE CASCADE,
-    referenceId varchar(50) UNIQUE NOT NULL,
-    referenceSource varchar(50) NOT NULL,
-    PRIMARY KEY (locationDbId, referenceId)
 );
 
 CREATE TABLE ListDetails (
@@ -108,16 +106,9 @@ CREATE TABLE ListDetails (
 );
 
 CREATE TABLE List (
-    listDbId varchar(50),
-    listItemDbId varchar(50),
-    PRIMARY KEY (listDbId, listItemDbId)
-);
-
-CREATE TABLE ListExtRef (
     listDbId varchar(50) NOT NULL REFERENCES ListDetails (listDbId) ON DELETE CASCADE,
-    referenceId varchar(50) UNIQUE NOT NULL,
-    referenceSource varchar(50) NOT NULL,
-    PRIMARY KEY (listDbId, referenceId)
+    listItemDbId varchar(50) NOT NULL,
+    PRIMARY KEY (listDbId, listItemDbId)
 );
 
 CREATE TABLE Program (
@@ -136,18 +127,13 @@ CREATE TABLE Program (
     programType program_type NULL
 );
 
-CREATE TABLE ProgramExtRef (
-    programDbId varchar(50) NOT NULL REFERENCES Program (programDbId) ON DELETE CASCADE,
-    referenceId varchar(50) UNIQUE NOT NULL,
-    referenceSource varchar(50) NOT NULL,
-    PRIMARY KEY (programDbId, referenceId)
-);
+-- DONT NEED THIS TABLE ANY MORE, DIRECT CONNECTION BETWEEN PERSON AND PROGRAM
 
-CREATE TABLE ProgramMembers (
-    programDbId varchar(50) NOT NULL REFERENCES Program(programDbId) ON DELETE CASCADE,
-    personDbId varchar(50) NOT NULL REFERENCES Person (personDbId) ON DELETE CASCADE,
-    PRIMARY KEY (programDbId, personDbId)
-);
+-- CREATE TABLE ProgramMembers (
+--     programDbId varchar(50) NOT NULL REFERENCES Program(programDbId) ON DELETE CASCADE,
+--     personDbId varchar(50) NOT NULL REFERENCES Person (personDbId) ON DELETE CASCADE,
+--     PRIMARY KEY (programDbId, personDbId)
+-- );
 
 CREATE TABLE Trial ( -- equivalent to MIAPPE V1 Investigation
     trialDbId varchar(50) NOT NULL PRIMARY KEY,
@@ -166,13 +152,6 @@ CREATE TABLE Trial ( -- equivalent to MIAPPE V1 Investigation
     startDate timestamp NULL,
     trialDescription text NULL,
     trialPUI varchar(255) NULL
-);
-
-CREATE TABLE TrialExtRef (
-    trialDbId varchar(50) NOT NULL REFERENCES Trial (trialDbId) ON DELETE CASCADE,
-    referenceId varchar(50) UNIQUE NOT NULL,
-    referenceSource varchar(50) NOT NULL,
-    PRIMARY KEY (trialDbId, referenceId)
 );
 
 CREATE TABLE TrialPeople (
@@ -246,6 +225,42 @@ CREATE TABLE StudyEnvParams ( -- Build more of this out with AGRO and ENVO ontol
     value varchar(50) NOT NULL,
     valuePUI varchar(50) NOT NULL,
     PRIMARY KEY (trialDbId, parameterPUI)
+);
+
+-- BrAPI Core External Reference Tables
+CREATE TABLE PersonExtRef (
+    personDbId varchar(50) NOT NULL REFERENCES Person (personDbId) ON DELETE CASCADE,
+    referenceId varchar(50) UNIQUE NOT NULL,
+    referenceSource varchar(50) NOT NULL,
+    PRIMARY KEY (personDbId, referenceId)
+);
+
+CREATE TABLE LocationExtRef (
+    locationDbId varchar(50) NOT NULL REFERENCES Location (locationDbId) ON DELETE CASCADE,
+    referenceId varchar(50) UNIQUE NOT NULL,
+    referenceSource varchar(50) NOT NULL,
+    PRIMARY KEY (locationDbId, referenceId)
+);
+
+CREATE TABLE ListExtRef (
+    listDbId varchar(50) NOT NULL REFERENCES ListDetails (listDbId) ON DELETE CASCADE,
+    referenceId varchar(50) UNIQUE NOT NULL,
+    referenceSource varchar(50) NOT NULL,
+    PRIMARY KEY (listDbId, referenceId)
+);
+
+CREATE TABLE ProgramExtRef (
+    programDbId varchar(50) NOT NULL REFERENCES Program (programDbId) ON DELETE CASCADE,
+    referenceId varchar(50) UNIQUE NOT NULL,
+    referenceSource varchar(50) NOT NULL,
+    PRIMARY KEY (programDbId, referenceId)
+);
+
+CREATE TABLE TrialExtRef (
+    trialDbId varchar(50) NOT NULL REFERENCES Trial (trialDbId) ON DELETE CASCADE,
+    referenceId varchar(50) UNIQUE NOT NULL,
+    referenceSource varchar(50) NOT NULL,
+    PRIMARY KEY (trialDbId, referenceId)
 );
 
 CREATE TABLE StudyExtRef (
