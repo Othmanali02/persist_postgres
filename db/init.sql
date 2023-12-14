@@ -313,3 +313,27 @@ CREATE TABLE StudyAdditionalInfo (
     PRIMARY KEY (studyDbId, infoKey)
 );
 
+CREATE TABLE Cross (
+    crossDbId VARCHAR(255) NOT NULL,
+    crossName VARCHAR(255) NOT NULL,
+    crossType VARCHAR(20) NOT NULL,
+    crossingProjectDbId VARCHAR(255),
+    crossingProjectName VARCHAR(255),
+    plannedCrossDbId VARCHAR(255),
+    plannedCrossName VARCHAR(255),
+    additionalInfo json NULL, -- moved to separate table
+    crossAttributes JSON,
+    parent1_germplasmDbId VARCHAR(255) NOT NULL,
+    parent1_germplasmName VARCHAR(255),
+    parent1_observationUnitDbId VARCHAR(255),
+    parent1_observationUnitName VARCHAR(255),
+    parent1_parentType VARCHAR(20),
+    parent2_germplasmDbId VARCHAR(255) NOT NULL,
+    parent2_germplasmName VARCHAR(255),
+    parent2_observationUnitDbId VARCHAR(255),
+    parent2_observationUnitName VARCHAR(255),
+    parent2_parentType VARCHAR(20),
+    pollinationEvents json NULL, -- moved to a seperate table
+    externalReferences json NULL, -- should also be moved to a seperate table because it Ids all the references to the table
+    PRIMARY KEY (crossDbId)
+);
